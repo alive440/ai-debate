@@ -1,6 +1,6 @@
 const DB_NAME='ai_debate_db'
 const STORE_NAME='api_keys'
-const ENCRYPTION_KEY='ai-debate-2026-key-v1-32bytes!!'
+const ENCRYPTION_KEY='ai-debate-2026-key-v1-32bytes!!!'
 
 async function encrypt(text:string): Promise<string> {
   const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(ENCRYPTION_KEY.slice(0,32)),{name:'AES-GCM'},false,['encrypt'])
