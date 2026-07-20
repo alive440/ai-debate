@@ -24,12 +24,22 @@ export function getPersonaName(index: number): string {
   return map[PERSONA_KEYS[index % PERSONA_KEYS.length]]
 }
 
+const PROXY_URL = '/api/proxy'
+
 export async function* streamChat(model: AIModel, apiKey: string, messages: {role:string;content:string}[], modelName?: string): AsyncGenerator<string> {
   const endpoint = getEndpoint(model.provider)
   const body = buildRequestBody(model.provider, modelName || model.defaultModel, messages)
-  const response = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey}, body:JSON.stringify(body) })
-  if (!response.ok) { const text = await response.text(); throw new Error(model.name + ' 调用失败: '+response.status+' '+text.slice(0,100)) }
-  const reader = response.body?.getReader()
+
+  let resp: Response
+  try {
+    resp = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey}, body:JSON.stringify(body) })
+    if (!resp.ok) { const text = await resp.text(); throw new Error(model.name + ' 调用失败: '+resp.status+' '+text.slice(0,100)) }
+  } catch(err: any) {
+    // CORS or network error — try proxy
+    resp = await fetch(PROXY_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint,apiKey,body}) })
+    if (!resp.ok) { const text = await resp.text(); throw new Error(model.name + ' 代理调用失败: '+resp.status+' '+text.slice(0,100)) }
+  }
+  const reader = resp.body?.getReader()
   if (!reader) throw new Error('No response body')
   const decoder = new TextDecoder(); let buffer = ''
   while (true) {
