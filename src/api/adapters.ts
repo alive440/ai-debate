@@ -51,9 +51,10 @@ function getEndpoint(provider: string): string {
     qwen:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
     kimi:'https://api.moonshot.cn/v1/chat/completions',
     zhipu:'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-    ernie:'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions',
   }
-  return eps[provider] || ''
+  const url = eps[provider]
+  if (!url) throw new Error('不支持的模型供应商: ' + provider + '。文心一言暂未支持，请使用其他模型。')
+  return url
 }
 function buildRequestBody(provider: string, model: string, messages: {role:string;content:string}[]) {
   return { model, messages, stream:true, temperature:0.8 }

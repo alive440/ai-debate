@@ -1,4 +1,4 @@
-import { type AIModel, streamChat, getPersona, getPersonaName } from './adapters'
+import { type AIModel, MODELS, streamChat, getPersona, getPersonaName } from './adapters'
 
 export interface RoundMessage { modelId:string; modelName:string; persona:string; content:string; round:number }
 export interface DebateState { question:string; models:AIModel[]; apiKeys:Record<string,string>; rounds:RoundMessage[]; framework:string; phase:'idle'|'debating'|'summarizing'|'done'; onMessage:(msg:RoundMessage)=>void; onFrameworkChunk:(chunk:string)=>void }
@@ -37,18 +37,23 @@ export async function runDebate(state: DebateState) {
   await generateFramework(state,apiKeys,onFrameworkChunk)
 }
 
+function findAvailableModel(apiKeys:Record<string,string>):{model:AIModel;key:string}|null {
+  for (const m of MODELS) { if(apiKeys[m.id]) return {model:m,key:apiKeys[m.id]} }
+  return null
+}
+
 async function generateSummary(messages:RoundMessage[],instruction:string,apiKeys:Record<string,string>): Promise<string> {
   const discussion=messages.map(m=>'【'+m.modelName+'（'+m.persona+'）】'+m.content).join('\n\n')
   const prompt=instruction+'\n\n'+discussion
-  const model:AIModel={id:'deepseek',name:'DeepSeek',provider:'deepseek',models:['deepseek-chat'],defaultModel:'deepseek-chat'}
-  const key=apiKeys['deepseek']||Object.values(apiKeys).find(k=>k)||''
-  try { let content=''; const stream=streamChat(model,key,[{role:'user',content:prompt}]); for await (const chunk of stream) content+=chunk; return content } catch { return '（摘要生成失败）' }
+  const pickModel=findAvailableModel(apiKeys)
+  if(!pickModel) return '（摘要生成失败——请先在设置页配置至少一个 API Key）'
+  try { let content=''; const stream=streamChat(pickModel.model,pickModel.key,[{role:'user',content:prompt}]); for await (const chunk of stream) content+=chunk; return content } catch { return '（摘要生成失败）' }
 }
 
 async function generateFramework(state:DebateState,apiKeys:Record<string,string>,onFrameworkChunk:(chunk:string)=>void) {
   const allMessages=state.rounds.map(m=>'[第'+m.round+'轮 | '+m.modelName+'（'+m.persona+'）] '+m.content).join('\n\n')
   const prompt='你是一位资深的决策顾问。以下是一场关于「'+state.question+'」的多轮专家辩论记录。请根据这场辩论，生成一份决策框架卡片。注意：1.不要替用户做决定。2.不要只说一面之词。3.提取出需要考虑的关键因素（3-5个）。4.每个因素列出支持方和反对方的论据。5.最后给出"如果决定A，需要关注什么""如果决定B，需要关注什么"。格式要求：简洁有条理，像一份微型研究笔记。\n\n'+allMessages
-  const model:AIModel={id:'deepseek',name:'DeepSeek',provider:'deepseek',models:['deepseek-chat'],defaultModel:'deepseek-chat'}
-  const key=apiKeys['deepseek']||Object.values(apiKeys).find(k=>k)||''
-  try { const stream=streamChat(model,key,[{role:'user',content:prompt}]); for await (const chunk of stream) onFrameworkChunk(chunk) } catch(err:any) { onFrameworkChunk('\n\n[决策框架生成失败: '+err.message+']') }
+  const pickModel=findAvailableModel(apiKeys)
+  if(!pickModel){onFrameworkChunk('\n\n[决策框架生成失败——请先在设置页配置至少一个 API Key]');return}
+  try { const stream=streamChat(pickModel.model,pickModel.key,[{role:'user',content:prompt}]); for await (const chunk of stream) onFrameworkChunk(chunk) } catch(err:any) { onFrameworkChunk('\n\n[决策框架生成失败: '+err.message+']') }
 }

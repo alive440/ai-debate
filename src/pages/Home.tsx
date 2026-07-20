@@ -25,7 +25,10 @@ export default function Home() {
 
   const handleStart = useCallback(async () => {
     if (!question.trim() || activeModels.length<2) return
-    setError(''); setRounds([]); setFramework(''); setPhase('debating')
+    const configuredKeys = Object.values(apiKeys).filter(k => k).length
+    if (configuredKeys === 0) { setError('请先在右下角「设置 API Key」中配置至少一个模型的密钥'); return }
+    setError('')
+    setRounds([]); setFramework(''); setPhase('debating')
     const state = { question:question.trim(), models:activeModels, apiKeys, rounds:[] as RoundMessage[], framework:'', phase:'debating' as const,
       onMessage: (msg:RoundMessage) => { setRounds(prev=>[...prev,msg]) },
       onFrameworkChunk: (chunk:string) => { setFramework(prev=>prev+chunk); frameworkRef.current?.scrollIntoView({behavior:'smooth'}) },
