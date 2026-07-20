@@ -2,11 +2,10 @@ export interface AIModel { id: string; name: string; provider: string; models: s
 
 export const MODELS: AIModel[] = [
   { id: 'deepseek', name: 'DeepSeek', provider: 'deepseek', models: ['deepseek-chat','deepseek-reasoner'], defaultModel: 'deepseek-chat' },
-  { id: 'doubao', name: '豆包', provider: 'doubao', models: ['doubao-pro-32k'], defaultModel: 'doubao-pro-32k' },
+  { id: 'doubao', name: '豆包', provider: 'doubao', models: ['doubao-seed-1-6-251015','doubao-pro-32k'], defaultModel: 'doubao-seed-1-6-251015' },
   { id: 'qwen', name: '通义千问', provider: 'qwen', models: ['qwen-turbo','qwen-plus','qwen-max'], defaultModel: 'qwen-plus' },
   { id: 'kimi', name: 'Kimi', provider: 'kimi', models: ['moonshot-v1-8k','moonshot-v1-32k'], defaultModel: 'moonshot-v1-32k' },
   { id: 'zhipu', name: '智谱 GLM', provider: 'zhipu', models: ['glm-4-flash','glm-4'], defaultModel: 'glm-4-flash' },
-  { id: 'ernie', name: '文心一言', provider: 'ernie', models: ['ernie-4.0-turbo'], defaultModel: 'ernie-4.0-turbo' },
 ]
 
 type RolePersona = 'optimist'|'pessimist'|'analyst'|'visionary'|'skeptic'|'pragmatist'
@@ -53,7 +52,7 @@ function getEndpoint(provider: string): string {
     zhipu:'https://open.bigmodel.cn/api/paas/v4/chat/completions',
   }
   const url = eps[provider]
-  if (!url) throw new Error('不支持的模型供应商: ' + provider + '。文心一言暂未支持，请使用其他模型。')
+  if (!url) throw new Error('不支持的模型供应商: ' + provider)
   return url
 }
 function buildRequestBody(provider: string, model: string, messages: {role:string;content:string}[]) {
